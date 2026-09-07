@@ -1,23 +1,28 @@
 # aws-kos — Kos landscape (Python + Terraform)
 
-This repo builds the same Argus app infrastructure as [`aws-delphi`](../aws-delphi), but drives Terraform with a small **Python** tool instead of **Terragrunt**.
+This repo is one of **three** implementations of the same Argus CMDB infrastructure on AWS. All three create the same kinds of resources (VPC, Cognito, Lambda, API Gateway, CloudFront, DNS, and so on). What differs is **how you run the stacks**:
 
-In short: same AWS resources and modules, different way of running the stacks.
+| Repo | Method | Link |
+|---|---|---|
+| `aws-delphi` | Terragrunt wraps Terraform | [karlamber/aws-delphi](https://github.com/karlamber/aws-delphi) |
+| **`aws-kos`** (this repo) | Python orchestrator runs Terraform | — |
+| `aws-delos` | Plain Terraform only (no wrapper) | [karlamber/aws-delos](https://github.com/karlamber/aws-delos) |
+
+Use this repo to see a small Python tool handle shared config, stack order, and Terraform plan/apply. Compare with Delphi (Terragrunt) or Delos (hand-run Terraform) for the same infrastructure.
 
 Hostnames in this lab use the **fifty9** domain (for example `argus-dev.fifty9.net`). The repo is meant as a learnable / portfolio example of multi-stack AWS infrastructure — keep it private while it contains real account details; publish later only after placeholders and gitignore are solid.
 
-A third sibling, [`aws-delos`](../aws-delos), is the same landscape with plain Terraform only (`live/<env>/…` stacks — you `cd` into each folder yourself, no Terragrunt, no Python).
-
 ---
 
-## Delphi vs Kos
+## How the three implementations differ
 
-| | Delphi (`aws-delphi`) | Kos (`aws-kos`) |
-|---|---|---|
-| What runs the stacks | Terragrunt | Python (`orchestrator/`) |
-| Shared account settings | `account.hcl` + `root.hcl` | `account.json` + `region.json` |
-| Which stack runs when | `dependency` blocks in HCL | `stacks.json` |
-| How one stack reads another’s outputs | Terragrunt `dependency.x.outputs` | Terraform `data.terraform_remote_state` |
+| | Delphi | Kos (this repo) | Delos |
+|---|---|---|---|
+| What runs the stacks | Terragrunt | Python (`orchestrator/`) | You + Terraform CLI |
+| Shared account settings | `account.hcl` + `root.hcl` | `account.json` + `region.json` | `environments/<env>/terraform.tfvars` |
+| Which stack runs when | `dependency` / `dependencies` in each stack’s HCL | `stacks.json` | Documented apply order (and optional `scripts/tf-stack.sh`) |
+| How one stack reads another’s outputs | Terragrunt `dependency.x.outputs` | `data.terraform_remote_state` | `data.terraform_remote_state` |
+| Layout | `aws-delphi-{env}/us-east-1/…` | `aws-kos-{env}/us-east-1/…` | `live/<env>/us-east-1/…` |
 
 Do not run Kos until the `aws-kos-dev` AWS account exists and you have filled in local secret/config values (see [Before first apply](#before-first-apply)).
 
@@ -61,17 +66,15 @@ On a brand-new account, use `apply --all --execute`. That plans and applies each
 
 ---
 
-## Compared to Delphi (one stack)
+## Same stack, three ways (example: `vpc`)
 
-Example: the `vpc` stack
+| | Delphi | Kos (this repo) | Delos |
+|---|---|---|---|
+| Where you edit stack settings | `vpc/terragrunt.hcl` | `vpc/main.tf` | `live/<env>/…/vpc/main.tf` |
+| Where the shared account ID comes from | Parent `account.hcl` (merged by Terragrunt) | `account.json` → written into tfvars by Python | `environments/<env>/terraform.tfvars` via `-var-file` |
+| How you run it | `terragrunt plan` in the stack folder | `python3 -m orchestrator plan vpc` | `terraform plan -var-file=…` (or `./scripts/tf-stack.sh … plan`) |
 
-| | Delphi | Kos |
-|---|---|---|
-| Where you edit stack settings | `vpc/terragrunt.hcl` | `vpc/main.tf` |
-| Where the shared account ID comes from | Parent `account.hcl` (merged by Terragrunt) | `account.json` → written into tfvars by Python |
-| How you run it | `terragrunt plan` in the stack folder | `python3 -m orchestrator plan vpc` |
-
-Reusable modules live under `tf-modules/` in both repos. The application name is still **argus**.
+Reusable modules live under `tf-modules/`. The application name is still **argus**.
 
 ---
 
