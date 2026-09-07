@@ -1,0 +1,52 @@
+# --- Terraform ---
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+tfplan
+*.tfplan
+.terraform.tfstate.lock.info
+
+# Generated per-stack (orchestrator rewrites from account.json / account.local.json)
+**/terraform.tfvars.json
+**/backend.hcl
+
+# Keep .terraform.lock.hcl committed (provider pins for stack roots).
+
+# --- Local secrets / account inventory (never publish) ---
+**/account.local.json
+.env
+.env.*
+!.env.example
+
+# --- Orchestrator / Python ---
+audit/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+*.code-workspace

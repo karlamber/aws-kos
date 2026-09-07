@@ -1,0 +1,43 @@
+# Human-readable mirror of stacks.json (orchestrator reads stacks.json).
+# depends_on drives apply order. Only stacks with remote_state.tf + main.tf usage
+# need parent state in S3 before they can plan.
+stacks:
+  cloudwatch_logging:
+    path: us-east-1/cloudwatch_logging
+    depends_on: []
+  vpc:
+    path: us-east-1/vpc
+    depends_on: [cloudwatch_logging]  # order-only
+  cognito:
+    path: us-east-1/cognito
+    depends_on: []
+  github_oidc_provider:
+    path: us-east-1/github_oidc_provider
+    depends_on: []
+  github_oidc_role:
+    path: us-east-1/github_oidc_role
+    depends_on: [github_oidc_provider]  # order-only
+  iam-lambda_policy:
+    path: us-east-1/argus/iam-lambda_policy
+    depends_on: []
+  rds:
+    path: us-east-1/argus/rds
+    depends_on: [vpc]
+  lambda-argus_api:
+    path: us-east-1/argus/lambda-argus_api
+    depends_on: [iam-lambda_policy, cloudwatch_logging, vpc, rds, cognito]
+  api-gateway:
+    path: us-east-1/argus/api-gateway
+    depends_on: [lambda-argus_api, cognito]
+  tls:
+    path: us-east-1/argus/tls
+    depends_on: []
+  cloudfront:
+    path: us-east-1/argus/cloudfront
+    depends_on: [api-gateway, tls]
+  dns_record:
+    path: us-east-1/argus/dns_record
+    depends_on: [cloudfront]
+  ssm_param:
+    path: us-east-1/argus/ssm_param
+    depends_on: [rds]
