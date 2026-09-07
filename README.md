@@ -6,7 +6,7 @@ In short: same AWS resources and modules, different way of running the stacks.
 
 Hostnames in this lab use the **fifty9** domain (for example `argus-dev.fifty9.net`). The repo is meant as a learnable / portfolio example of multi-stack AWS infrastructure — keep it private while it contains real account details; publish later only after placeholders and gitignore are solid.
 
-A third sibling, [`aws-delos`](../aws-delos), is the same landscape with plain Terraform only (you `cd` into each folder yourself — no Terragrunt, no Python).
+A third sibling, [`aws-delos`](../aws-delos), is the same landscape with plain Terraform only (`live/<env>/…` stacks — you `cd` into each folder yourself, no Terragrunt, no Python).
 
 ---
 
@@ -41,8 +41,8 @@ Terraform still creates and changes AWS resources. Python only handles shared co
 
 | File | Purpose |
 |---|---|
-| `aws-kos-dev/account.json` + gitignored `account.local.json` | Shared values: AWS account ID, DNS role, GitHub OIDC subjects, artifact bucket |
-| `aws-kos-dev/us-east-1/region.json` | AWS region and short region code |
+| `aws-kos-dev/` or `aws-kos-prod/` `account.json` + gitignored `account.local.json` | Shared values: AWS account ID, DNS role, GitHub OIDC subjects, artifact bucket |
+| `aws-kos-*/us-east-1/region.json` | AWS region and short region code |
 | Each stack’s `main.tf` | Settings unique to that stack (VPC CIDRs, Cognito URLs, Lambda env, …) |
 | Generated `terraform.tfvars.json` / `backend.hcl` | Written by the orchestrator before each run — **do not edit by hand** |
 
@@ -84,14 +84,17 @@ aws-kos/
 ├── orchestrator/               # Python replacement for Terragrunt
 ├── tf-modules/                 # shared Terraform modules for this landscape
 ├── audit/                      # run history written by the orchestrator (gitignored)
-└── aws-kos-dev/
-    ├── account.json            # committed placeholders (safe to publish)
-    ├── account.local.json      # gitignored — your real account IDs and OIDC subjects
-    ├── account.json.example    # copy this to create account.local.json
-    └── us-east-1/
-        ├── region.json
-        ├── vpc, cognito, cloudwatch_logging, github_oidc_*
-        └── argus/              # rds, lambda, apigw, tls, cloudfront, dns, ssm, iam
+├── aws-kos-dev/
+│   ├── account.json            # committed placeholders (safe to publish)
+│   ├── account.local.json      # gitignored — your real account IDs and OIDC subjects
+│   ├── account.json.example    # copy this to create account.local.json
+│   └── us-east-1/
+│       ├── region.json
+│       ├── vpc, cognito, cloudwatch_logging, github_oidc_*
+│       └── argus/              # rds, lambda, apigw, tls, cloudfront, dns, ssm, iam
+└── aws-kos-prod/               # same stack layout; pass --account-dir aws-kos-prod
+    ├── account.json
+    └── us-east-1/…
 ```
 
 Each stack folder is a normal Terraform root: `main.tf`, `variables.tf`, `providers.tf`, `versions.tf`, and when needed `remote_state.tf` / `outputs.tf`.
@@ -118,6 +121,10 @@ python3 -m orchestrator apply --all --execute
 
 # One stack (still runs its dependencies first)
 python3 -m orchestrator apply rds --execute
+
+# Prod account folder (requires --i-know with --execute)
+python3 -m orchestrator --account-dir aws-kos-prod plan --all --dry-run-files-only
+python3 -m orchestrator --account-dir aws-kos-prod apply --all --execute --i-know
 ```
 
 `apply` without `--execute` only plans — it does not change AWS. The orchestrator blocks `--execute` if `account_id` is still a placeholder, and blocks production applies unless you pass `--i-know`.
@@ -189,4 +196,11 @@ Do not commit real AWS account IDs, GitHub OIDC subject IDs, or database/SSM pas
 
 ## Network
 
-This landscape uses IP range `10.0.16.0/20`. The us-east-1 VPC CIDR is `10.0.16.0/21` (set in `aws-kos-dev/us-east-1/vpc/main.tf`). That block does not overlap Delphi’s `10.0.0.0/20`.
+Each env account gets its own `/20` (no CIDR overlap between dev and prod):
+
+| Account folder | Account block | us-east-1 VPC | Set in |
+|---|---|---|---|
+| `aws-kos-dev` | `10.0.16.0/20` | `10.0.16.0/21` | `aws-kos-dev/us-east-1/vpc/main.tf` |
+| `aws-kos-prod` | `10.0.64.0/20` | `10.0.64.0/21` | `aws-kos-prod/us-east-1/vpc/main.tf` |
+
+These blocks do not overlap Delphi (`10.0.0.0/20` dev, `10.0.48.0/20` prod) or Delos (`10.0.32.0/20` dev, `10.0.80.0/20` prod).

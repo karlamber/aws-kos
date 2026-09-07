@@ -66,8 +66,8 @@ def validate_request(*, env: str, execute: bool, i_know: bool, account_id: str) 
     if account_id in {"", "000000000000", "<ACCOUNT_ID>", "PLACEHOLDER"}:
         if execute:
             raise OrchestratorError(
-                "account_id is still a placeholder — vend aws-kos-dev and update "
-                "account.json before --execute"
+                "account_id is still a placeholder — update account.json "
+                "(or account.local.json) in the account folder before --execute"
             )
     if env == "prod" and execute and not i_know:
         raise OrchestratorError("refusing prod apply without --i-know")
@@ -178,7 +178,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--account-dir",
         default=None,
-        help="Path to account folder (default: aws-kos-dev)",
+        help="Path to account folder (default: aws-kos-dev; use aws-kos-prod for prod)",
     )
 
     sub = parser.add_subparsers(dest="command", required=True)
