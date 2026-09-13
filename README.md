@@ -168,7 +168,13 @@ python3 -m unittest tests.test_orchestrator -v
    ```bash
    python3 -m orchestrator apply --all --execute
    ```
-9. Confirm state files appeared in the bucket:
+9. After the RDS stack exists, bootstrap Argus schema: run
+   `aws-kos-dev/us-east-1/argus/rds/initial-config.sql` as `postgres` (RDS Query
+   Editor). Then set `argus_lambda` password to match Lambda `PGPASSWORD`.
+   Later schema changes live in `argus-api-lambda/db/migrations/` — do not
+   re-run `initial-config.sql` to evolve a live database. See
+   [Argus database schema](#argus-database-schema).
+10. Confirm state files appeared in the bucket:
    ```bash
    aws --profile aws-kos-dev s3 ls s3://s3-kos-dev-ue1-terraform-state/ --recursive
    ```
@@ -194,6 +200,27 @@ git grep -E 'AKIA[0-9A-Z]{16}|BEGIN (RSA |OPENSSH )?PRIVATE' -- ':!*.lock.hcl' |
 ```
 
 Do not commit real AWS account IDs, GitHub OIDC subject IDs, or database/SSM passwords. After the first successful `terraform init` on a machine, **do** commit any generated `.terraform.lock.hcl` files so everyone uses the same provider versions.
+
+---
+
+## Argus database schema
+
+RDS Terraform creates an empty Aurora PostgreSQL database (`argus`). It does
+**not** create tables. Schema is owned by `argus-api-lambda` and applied in two
+ways:
+
+| When | What to run |
+|---|---|
+| Brand-new cluster | `us-east-1/argus/rds/initial-config.sql` as master user `postgres` (RDS Query Editor). Then set `argus_lambda` password to match Lambda `PGPASSWORD`. |
+| Cluster that already has tables | Do **not** re-run `initial-config.sql` expecting ALTERs — it will not change existing tables. Apply `argus-api-lambda/db/migrations/` (`npm run migrate`, or paste the new file in Query Editor and stamp `argus.schema_migrations`). |
+
+Apply SQL on the **target** environment **before** deploying Lambda code that
+needs the new shape. Keep the `dev` and `prod` copies of `initial-config.sql` in
+lockstep; after each migration, paste `npm run migrate:stamps` from
+`argus-api-lambda` into the `schema_migrations` INSERT.
+
+Promotion: apply schema in `dev`, then `prod`. Same order as application
+deploys. Never skip.
 
 ---
 
