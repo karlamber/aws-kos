@@ -1,7 +1,7 @@
 locals {
   app_alias       = "argus"
   detail          = "argus_api"
-  description     = "Argus CMDB API Lambda (argus-api-lambda)"
+  description     = "easyCMDB API Lambda (easycmdb-api)"
   artifact_bucket = var.artifact_bucket
   artifact_key    = "${local.app_alias}/${var.env}/${local.app_alias}-${local.detail}.zip"
 }

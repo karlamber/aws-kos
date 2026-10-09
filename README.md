@@ -10,7 +10,7 @@ This repo is one of **three** implementations of the same Argus CMDB infrastruct
 
 Use this repo to see a small Python tool handle shared config, stack order, and Terraform plan/apply. Compare with Delphi (Terragrunt) or Delos (hand-run Terraform) for the same infrastructure.
 
-Hostnames in this lab use the **fifty9** domain (for example `argus-dev.fifty9.net`). The repo is meant as a learnable / portfolio example of multi-stack AWS infrastructure — keep it private while it contains real account details; publish later only after placeholders and gitignore are solid.
+Hostnames in this lab use the **fifty9** domain (for example `argus-dev.fifty9.net`). Real account IDs and OIDC subjects stay in a gitignored `account.local.json`. Committed `account.json` files use placeholders.
 
 ---
 
@@ -171,7 +171,7 @@ python3 -m unittest tests.test_orchestrator -v
 9. After the RDS stack exists, bootstrap Argus schema: run
    `aws-kos-dev/us-east-1/argus/rds/initial-config.sql` as `postgres` (RDS Query
    Editor). Then set `argus_lambda` password to match Lambda `PGPASSWORD`.
-   Later schema changes live in `argus-api-lambda/db/migrations/` — do not
+   Later schema changes live in [easycmdb-api](https://github.com/karlamber/easycmdb-api) `db/migrations/` — do not
    re-run `initial-config.sql` to evolve a live database. See
    [Argus database schema](#argus-database-schema).
 10. Confirm state files appeared in the bucket:
@@ -203,21 +203,30 @@ Do not commit real AWS account IDs, GitHub OIDC subject IDs, or database/SSM pas
 
 ---
 
+## Related application repos
+
+The product name is easyCMDB. The infrastructure alias stays `argus`.
+
+| Repo | Purpose |
+|---|---|
+| [easycmdb-web](https://github.com/karlamber/easycmdb-web) | React SPA |
+| [easycmdb-api](https://github.com/karlamber/easycmdb-api) | TypeScript Lambda API |
+
 ## Argus database schema
 
 RDS Terraform creates an empty Aurora PostgreSQL database (`argus`). It does
-**not** create tables. Schema is owned by `argus-api-lambda` and applied in two
+**not** create tables. Schema is owned by [easycmdb-api](https://github.com/karlamber/easycmdb-api) and applied in two
 ways:
 
 | When | What to run |
 |---|---|
 | Brand-new cluster | `us-east-1/argus/rds/initial-config.sql` as master user `postgres` (RDS Query Editor). Then set `argus_lambda` password to match Lambda `PGPASSWORD`. |
-| Cluster that already has tables | Do **not** re-run `initial-config.sql` expecting ALTERs — it will not change existing tables. Apply `argus-api-lambda/db/migrations/` (`npm run migrate`, or paste the new file in Query Editor and stamp `argus.schema_migrations`). |
+| Cluster that already has tables | Do **not** re-run `initial-config.sql` expecting ALTERs — it will not change existing tables. Apply `easycmdb-api/db/migrations/` (`npm run migrate`, or paste the new file in Query Editor and stamp `argus.schema_migrations`). |
 
 Apply SQL on the **target** environment **before** deploying Lambda code that
 needs the new shape. Keep the `dev` and `prod` copies of `initial-config.sql` in
 lockstep; after each migration, paste `npm run migrate:stamps` from
-`argus-api-lambda` into the `schema_migrations` INSERT.
+`easycmdb-api` into the `schema_migrations` INSERT.
 
 Promotion: apply schema in `dev`, then `prod`. Same order as application
 deploys. Never skip.
@@ -234,3 +243,4 @@ Each env account gets its own `/20` (no CIDR overlap between dev and prod):
 | `aws-kos-prod` | `10.0.64.0/20` | `10.0.64.0/21` | `aws-kos-prod/us-east-1/vpc/main.tf` |
 
 These blocks do not overlap Delphi (`10.0.0.0/20` dev, `10.0.48.0/20` prod) or Delos (`10.0.32.0/20` dev, `10.0.80.0/20` prod).
+AWS stays in `10.0.0.0/11`; Azure VNets use `10.32.0.0/11`.

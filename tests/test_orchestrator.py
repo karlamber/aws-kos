@@ -46,7 +46,7 @@ class ConfigRefreshTests(unittest.TestCase):
             route53_account_id="000000000000",
             dns_manager_role_arn="arn:aws:iam::000000000000:role/role-EXAMPLE-root-ue1-dns_manager",
             artifact_bucket="s3-EXAMPLE-mgmt-ue1-shared-lambda",
-            oidc_subjects=("EXAMPLE_GITHUB_ORG/argus-api-lambda:*",),
+            oidc_subjects=("EXAMPLE_GITHUB_ORG/easycmdb-api:*",),
             account_dir=Path("/tmp"),
         )
         self.assertEqual(cfg.state_bucket, "s3-kos-dev-ue1-terraform-state")

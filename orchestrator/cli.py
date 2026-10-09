@@ -17,7 +17,7 @@ DNS_STACKS = {"tls", "dns_record"}
 STACK_EXTRA_VARS: dict[str, set[str]] = {
     "tls": {"route53_account_id", "dns_manager_role_arn"},
     "dns_record": {"route53_account_id", "dns_manager_role_arn"},
-    "github_oidc_role": {"oidc_subjects"},
+    "github_oidc_role": {"oidc_subjects", "artifact_bucket"},
     "lambda-argus_api": {"artifact_bucket"},
 }
 COMMON_DROP = {

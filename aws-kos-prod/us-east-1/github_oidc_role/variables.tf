@@ -37,3 +37,8 @@ variable "oidc_subjects" {
   type        = list(string)
   description = "GitHub OIDC subject claims allowed to assume this role."
 }
+
+variable "artifact_bucket" {
+  type        = string
+  description = "Bucket that holds Lambda deployment zips. May live in another account."
+}
